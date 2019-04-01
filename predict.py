@@ -54,7 +54,7 @@ def decoder(pred):
     contain1 = pred[:,:,4].unsqueeze(2)
     contain2 = pred[:,:,9].unsqueeze(2)
     contain = torch.cat((contain1,contain2),2)
-    mask1 = contain > 0.1 #大于阈值
+    mask1 = contain > 0.01 #大于阈值
     mask2 = (contain==contain.max()) #we always select the best contain_prob what ever it>0.9
     mask = (mask1+mask2).gt(0)
     # min_score,min_index = torch.min(contain,2) #每个cell只选最大概率的那个预测框
@@ -103,7 +103,10 @@ def nms(bboxes,scores,threshold=0.5):
     _,order = scores.sort(0,descending=True)
     keep = []
     while order.numel() > 0:
-        i = order[0]
+        try:
+            i = order[0]
+        except Exception:
+            i = order.item()
         keep.append(i)
 
         if order.numel() == 1:
