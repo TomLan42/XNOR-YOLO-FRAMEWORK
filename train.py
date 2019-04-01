@@ -70,7 +70,8 @@ def train(train_loader, model, criterion, optimizer, epoch):
         if not args.pretrained:
             bin_op.restore()
             bin_op.updateBinaryGradWeight()
-            optimizer.step()
+        
+        optimizer.step()
         
         '''#Print losses etc.'''
         if (i+1) % 5 == 0:
