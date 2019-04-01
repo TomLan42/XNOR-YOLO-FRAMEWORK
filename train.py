@@ -131,7 +131,7 @@ def main():
 
     '''Data loading module'''
     train_dataset = yoloDataset(root='/mnt/lustre/share/DSK/datasets/VOC07+12/JPEGImages/',
-        list_file=['./meta/voc2007.txt','./meta/voc2012.txt'], train=True, transform=[transforms.ToTensor()])
+        list_file=['./meta/voc2007.txt'], train=True, transform=[transforms.ToTensor()])
     train_loader = DataLoader(
         train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=4)
     
