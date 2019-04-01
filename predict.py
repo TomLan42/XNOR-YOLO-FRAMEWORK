@@ -74,7 +74,7 @@ def decoder(pred):
                     box_xy[2:] = box[:2] + 0.5*box[2:]
                     max_prob,cls_index = torch.max(pred[i,j,10:],0)
                     cls_index = cls_index.unsqueeze(0)
-                    if float((contain_prob*max_prob)[0]) > 0.1:
+                    if float((contain_prob*max_prob)[0]) > 0.01:
                         boxes.append(box_xy.view(1,4))
                         cls_indexs.append(cls_index)
                         probs.append(contain_prob*max_prob)
