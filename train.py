@@ -25,9 +25,14 @@ from mixnet import vgg16_mix
 import util
 
 def save_checkpoint(state, is_best, filename='./experiment/vgg16xnor/checkpoint.pth.tar'):
+    if args.mixnet:
+        filename = './experiment/vgg16mix/checkpoint.pth.tar'
     torch.save(state, filename)
     if is_best:
-        shutil.copyfile(filename, './experiment/vgg16xnor/model_best.pth.tar')
+        if args.mixnet:
+            shutil.copyfile(filename, './experiment/vgg16mix/model_best.pth.tar')
+        else:
+            shutil.copyfile(filename, './experiment/vgg16xnor/model_best.pth.tar')
 
 def adjust_learning_rate(optimizer, epoch):
     """Sets the learning rate to the initial LR decayed by 10 every 30 epochs"""
@@ -121,6 +126,8 @@ def main():
                     metavar='W', help='weight decay (default: 1e-5)')
     parser.add_argument('--pretrained', dest='pretrained', action='store_true',
                     default=False, help='use pre-trained model')
+    parser.add_argument('--mixnet', dest='mixnet', action='store_true',
+                    default=False, help='use mixnet model')
     parser.add_argument('--start-epoch', default=0, type=int, metavar='N',
                     help='manual epoch number (useful on restarts)')
     parser.add_argument('--resume', default='', type=str, metavar='PATH',
@@ -196,7 +203,10 @@ def main():
                 print("=> no checkpoint found at '{}'".format(args.resume))
     else:
         if args.resume:
-            model.load_state_dict(torch.load('./experiment/vgg16fp/checkpoint.pth'))
+            if args.mixnet:
+                model.load_state_dict(torch.load('./experiment/vgg16mix/checkpoint.pth'))
+            else:
+                model.load_state_dict(torch.load('./experiment/vgg16fp/checkpoint.pth'))
 
     
     print model
