@@ -103,7 +103,6 @@ def validate(test_loader, model, criterion):
     with open("./log/log.txt", "a") as text_file:
         text_file.write('validation loss %.5f \n' % validate_loss)
     if not args.pretrained:
-        bin_op.binarization()
         bin_op.restore()
 
     return validate_loss
