@@ -139,6 +139,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description = 'Pytorch XNOR-YOLO Evaluation')
     parser.add_argument('--pretrained', dest='pretrained', action='store_true',
                     default=False, help='use pre-trained model')
+    parser.add_argument('-ct', '--confidence_threshold', default=0.001, type=float,
+                    metavar='CT', help='first round filtering')
+    parser.add_argument('--pt', '--prob_threshold', default=0.01, type=float,
+                    metavar='PT', help='second round filtering')
     args = parser.parse_args()
 
     #test_eval()

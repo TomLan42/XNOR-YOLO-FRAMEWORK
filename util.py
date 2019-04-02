@@ -1,16 +1,17 @@
 import torch.nn as nn
 import numpy
+import torchvision.models as models
 
 class BinOp():
-    def __init__(self, model):
+    def __init__(self, model,bin_range):
         # count the number of Conv2d and Linear
         count_targets = 0
         for m in model.modules():
             if isinstance(m, nn.Conv2d) or isinstance(m, nn.Linear):
                 count_targets = count_targets + 1
 
-        start_range = 1
-        end_range = count_targets-2
+        start_range = bin_range[0]
+        end_range = bin_range[1]
         self.bin_range = numpy.linspace(start_range,
                 end_range, end_range-start_range+1)\
                         .astype('int').tolist()
@@ -26,6 +27,7 @@ class BinOp():
                     tmp = m.weight.data.clone()
                     self.saved_params.append(tmp)
                     self.target_modules.append(m.weight)
+                    #print "hey, i binarized ",index," th conv ", m
 
     def binarization(self):
         self.meancenterConvParams()
@@ -87,3 +89,5 @@ class BinOp():
             m_add = m_add.mul(weight.sign())
             self.target_modules[index].grad.data = m.add(m_add).mul(1.0-1.0/s[1]).mul(n)
             self.target_modules[index].grad.data = self.target_modules[index].grad.data.mul(1e+9)
+
+  

@@ -21,6 +21,7 @@ from dataset import yoloDataset
 from yoloLoss import yoloLoss
 import model_list
 from net import vgg16_bn
+from mixnet import vgg16_mix
 import util
 
 def save_checkpoint(state, is_best, filename='./experiment/vgg16xnor/checkpoint.pth.tar'):
@@ -154,6 +155,9 @@ def main():
                         (k in model_dict) and (model_dict[k].shape == pretrained_dict[k].shape)}
         model_dict.update(pretrained_dict)
         model.load_state_dict(model_dict)
+    elif args.mixnet:
+        print 'Loading a xnor&fp mixed model...'
+        model,bin_range = vgg16_mix3()
     else:
         print 'Loading a binary vgg16_bn model...'
         model = model_list.vgg(pretrained = False)
@@ -199,7 +203,7 @@ def main():
     '''Define binarization operator.'''
     
     global bin_op
-    bin_op = util.BinOp(model)
+    bin_op = util.BinOp(model,bin_range)
     
     for epoch in range(args.start_epoch, args.epochs):
         
