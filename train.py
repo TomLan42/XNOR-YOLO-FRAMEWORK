@@ -21,7 +21,7 @@ from dataset import yoloDataset
 from yoloLoss import yoloLoss
 import model_list
 from net import vgg16_bn
-from mixnet import vgg16_mix
+from mixnet import vgg16_mix3
 import util
 
 def save_checkpoint(state, is_best, filename='./experiment/vgg16xnor/checkpoint.pth.tar'):
