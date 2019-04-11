@@ -62,7 +62,7 @@ class BinConv2d(nn.Module):
         else:
             self.bn = nn.BatchNorm1d(input_channels, eps=1e-4, momentum=0.1, affine=True)
             self.linear = nn.Linear(input_channels, output_channels)
-        self.relu = nn.ReLU(inplace=True)
+        self.relu = nn.LeakyReLU(inplace=True)
     
     def forward(self, x):
         x = self.bn(x)
@@ -78,7 +78,7 @@ class BinConv2d(nn.Module):
 
 class VGG(nn.Module):
 
-    def __init__(self, features, num_classes=1470, image_size=448):
+    def __init__(self, features, num_classes=1470, image_size=224):
         super(VGG, self).__init__()
         self.features = features
         self.image_size = image_size
@@ -125,7 +125,7 @@ def make_layers(cfg, batch_norm=False):
     for v in cfg:
         s=1
         if (v==64 and first_flag):
-            s=2
+            s=1
             first_flag=False
         if str(v)[-1] == 'B':
             cout = int(v[:-1])
@@ -138,7 +138,7 @@ def make_layers(cfg, batch_norm=False):
         elif v == 'M':
             layers += [nn.MaxPool2d(kernel_size=2, stride=2)]
         else:
-            conv2d = nn.Conv2d(in_channels, v, kernel_size=3, stride=s, padding=1)
+            conv2d = nn.Conv2d(in_channels, v, kernel_size=3, stride=s, padding=1,groups=1)
             if batch_norm:
                 layers += [conv2d, nn.BatchNorm2d(v), nn.ReLU(inplace=True)]
             else:
@@ -161,8 +161,8 @@ cfg = {
     'B': [64, 64, 'M', 128, 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M'],
     'D': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'M', 512, 512, 512, 'M', 512, 512, 512, 'M'],
     'E': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 256, 'M', 512, 512, 512, 512, 'M', 512, 512, 512, 512, 'M'],
-
-    'F': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'M', 512, 512, 512, 'M', '512B', '512B', '512B', 'M']
+    'F': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'M', 512, 512, 512, 'M', '512B', '512B', 512, 'M']
+   # 'F': [64, '64B', 'M', '128B', '128B', 'M', '256B', '256B', '256B', 'M', '512B', '512B', '512B', 'M', '512B', '512B', 512, 'M']
 }
 
 
@@ -294,7 +294,7 @@ def test():
     print(model)
     print(bin_range)
     bin_op = util.BinOp(model,bin_range)
-    img = torch.rand(2,3,448,448)
+    img = torch.rand(2,3,224,224)
     img = Variable(img)
     output = model(img)
     print(output.size())

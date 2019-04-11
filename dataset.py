@@ -15,7 +15,7 @@ import cv2
 import matplotlib.pyplot as plt
 
 class yoloDataset(data.Dataset):
-    image_size = 448
+    image_size = 224
     def __init__(self,root,list_file,train,transform):
         print('data init')
         self.root=root

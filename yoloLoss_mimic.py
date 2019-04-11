@@ -1,15 +1,13 @@
 #encoding:utf-8
-#
-#created by xiongzihua 2017.12.26
-#
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
 
-class yoloLoss(nn.Module):
+class yoloLossMimic(nn.Module):
     def __init__(self,S,B,l_coord,l_noobj):
-        super(yoloLoss,self).__init__()
+        super(yoloLossMimic,self).__init__()
         self.S = S
         self.B = B
         self.l_coord = l_coord
@@ -47,7 +45,7 @@ class yoloLoss(nn.Module):
 
         iou = inter / (area1 + area2 - inter)
         return iou
-    def forward(self,pred_tensor,target_tensor):
+    def forward(self,pred_tensor,target_tensor,student_feature_tensor,teacher_feature_tensor):
         '''
         pred_tensor: (tensor) size(batchsize,S,S,Bx5+20=30) [x,y,w,h,c]
         target_tensor: (tensor) size(batchsize,S,S,30)
@@ -67,10 +65,10 @@ class yoloLoss(nn.Module):
         class_target = coo_target[:,10:]
         
 
-        #if not int(class_pred[1,:].max(0)[1]) == 14:
-        #    print 'Nice! We got class' , int(class_pred[1,:].max(0)[0])
-        #else: 
-        #    print 'Shit'
+        # if not int(class_pred[1,:].max(0)[1]) == 14:
+        #     print 'Nice! We got class' , int(class_pred[1,:].max(0)[0])
+        # else: 
+        #     print 'Shit'
 
 
         # compute not contain obj loss
@@ -104,14 +102,10 @@ class yoloLoss(nn.Module):
             
             coo_response_mask[i+max_index]=1
             coo_not_response_mask[i+1-max_index]=1
-
-            #####
-            # we want the confidence score to equal the
-            # intersection over union (IOU) between the predicted box
-            # and the ground truth
-            #####
             box_target_iou[i+max_index,torch.LongTensor([4]).cuda()] = (max_iou).data.cuda()
+        
         box_target_iou = Variable(box_target_iou).cuda()
+        
         #1.response loss
         box_pred_response = box_pred[coo_response_mask].view(-1,5)
         box_target_response_iou = box_target_iou[coo_response_mask].view(-1,5)
@@ -122,16 +116,16 @@ class yoloLoss(nn.Module):
         box_pred_not_response = box_pred[coo_not_response_mask].view(-1,5)
         box_target_not_response = box_target[coo_not_response_mask].view(-1,5)
         box_target_not_response[:,4]= 0
-        #not_contain_loss = F.mse_loss(box_pred_response[:,4],box_target_response[:,4],size_average=False)
-        
-        #I believe this bug is simply a typo
         not_contain_loss = F.mse_loss(box_pred_not_response[:,4], box_target_not_response[:,4],size_average=False)
 
         #3.class loss
         class_loss = F.mse_loss(class_pred,class_target,size_average=False)
-        #print ('Coordination Loss: %.4f, Conofidence Loss: %.4f, classes Loss: %.4f' 
-         #   %(self.l_coord*loc_loss/N, (2*contain_loss + not_contain_loss + self.l_noobj*nooobj_loss)/N,class_loss/N))
-        return (self.l_coord*loc_loss + 2*contain_loss + not_contain_loss + self.l_noobj*nooobj_loss + class_loss)/N
+        
+        gt_loss = (self.l_coord*loc_loss + 2*contain_loss + not_contain_loss + self.l_noobj*nooobj_loss + class_loss)/N
+        mimic_loss = (F.mse_loss(student_feature_tensor,teacher_feature_tensor))/N
+        print ('GT Loss: %.4f, Mimic Loss: %.4f' %(gt_loss, 10000*mimic_loss))
+
+        return gt_loss + 10000*mimic_loss
 
 
 

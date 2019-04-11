@@ -86,7 +86,7 @@ def make_layers(cfg, batch_norm=False):
     for v in cfg:
         s=1
         if (v==64 and first_flag):
-            s=2
+            s=1
             first_flag=False
         if v == 'M':
             layers += [nn.MaxPool2d(kernel_size=2, stride=2)]

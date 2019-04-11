@@ -1,5 +1,7 @@
 #encoding:utf-8
-from net import vgg16_bn
+from net import vgg16_bn,vgg16
+from mimic_net import vgg16,vgg16XNOR
+from mixnet import vgg16_mix3
 import argparse
 import util
 import os
@@ -139,10 +141,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description = 'Pytorch XNOR-YOLO Evaluation')
     parser.add_argument('--pretrained', dest='pretrained', action='store_true',
                     default=False, help='use pre-trained model')
-    parser.add_argument('-ct', '--confidence_threshold', default=0.001, type=float,
-                    metavar='CT', help='first round filtering')
-    parser.add_argument('--pt', '--prob_threshold', default=0.01, type=float,
-                    metavar='PT', help='second round filtering')
+    parser.add_argument('--mixnet', dest='mixnet', action='store_true',
+                    default=False, help='use mixnet model')
     args = parser.parse_args()
 
     #test_eval()
@@ -179,21 +179,28 @@ if __name__ == '__main__':
     print('---start test---')
     '''Create model.'''
     if args.pretrained:
-        model = vgg16_bn(pretrained = False)
-        model.features = torch.nn.DataParallel(model.features)
+        model = vgg16(pretrained = False)
+        model = torch.nn.DataParallel(model)
         model.cuda()
         model.load_state_dict(torch.load('./experiment/vgg16fp/checkpoint.pth'))
     else:
-        model = model_list.vgg(pretrained = False)
-        model.features = torch.nn.DataParallel(model.features)
-        model.cuda()
-        checkpoint = torch.load('./experiment/vgg16xnor/model_best.pth.tar')
-        model.load_state_dict(checkpoint['state_dict'])
-
-        bin_op = util.BinOp(model)
+        if args.mixnet:
+            model,foo = vgg16_mix3(pretrained = False)
+            model = torch.nn.DataParallel(model)
+            model.cuda()
+            checkpoint = torch.load('./experiment/vgg16mix/2019_04_08/checkpoint.pth.tar')
+            model.load_state_dict(checkpoint['state_dict'])
+        else:    
+            model = model_list.vgg(pretrained = False)
+            model.features = torch.nn.DataParallel(model.features)
+            model.cuda()
+            checkpoint = torch.load('./experiment/vgg16xnor/model_best.pth.tar')
+            model.load_state_dict(checkpoint['state_dict'])
+        bin_range = [10,11]
+        bin_op = util.BinOp(model,bin_range)
         bin_op.binarization()
-    
-
+       
+    print model
     model.eval()
     count = 0
     for image_path in tqdm(image_list):

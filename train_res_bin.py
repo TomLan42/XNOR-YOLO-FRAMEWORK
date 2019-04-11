@@ -20,7 +20,8 @@ from torch.autograd import Variable
 from dataset import yoloDataset
 from yoloLoss import yoloLoss
 import model_list
-from net import vgg16_bn,vgg16
+from net import vgg16_bn
+from resnet_bin import resnet18
 from mixnet import vgg16_mix3
 import util
 
@@ -37,13 +38,13 @@ def save_checkpoint(state, is_best, filename='./experiment/vgg16xnor/checkpoint.
 def adjust_learning_rate(optimizer, epoch):
     """Sets the learning rate to the initial LR decayed by 10 every 30 epochs"""
     if epoch <5:
-        lr =  1e-4
+        lr =  1e-5
     if epoch >=5 and epoch < 80:
         lr = 1e-4
     if epoch >= 80 and  epoch < 110:
         lr = 1e-5
     if epoch >=110:
-        lr = 1e-5
+        lr = 1e-6
     print 'Learning rate:', lr
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
@@ -139,7 +140,7 @@ def main():
 
     '''Data loading module'''
     train_dataset = yoloDataset(root='/mnt/lustre/share/DSK/datasets/VOC07+12/JPEGImages/',
-        list_file=['./meta/voc2007.txt','./meta/voc2012.txt'], train=True, transform=[transforms.ToTensor()])
+        list_file=['./meta/voc2007.txt'], train=True, transform=[transforms.ToTensor()])
     train_loader = DataLoader(
         train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=4)
     
@@ -153,29 +154,21 @@ def main():
 
     '''Create model.'''
     if args.pretrained:
-        print 'Loading a pretrained vgg16 model...'
-        model = vgg16(pretrained = False)
-        pretrained_dict = torch.load('vgg16-397923af.pth')
+        print 'Loading a pretrained vgg16_bn model...'
+        model = vgg16_bn(pretrained = False)
+    
+        pretrained_dict = torch.load('vgg16_bn-6c64b313.pth')
         model_dict = model.state_dict()
         pretrained_dict = pretrained_dict = {k: v for k, v in pretrained_dict.items() if
                         (k in model_dict) and (model_dict[k].shape == pretrained_dict[k].shape)}
-        for key,value in pretrained_dict.items():
-            print key
         model_dict.update(pretrained_dict)
         model.load_state_dict(model_dict)
     elif args.mixnet:
         print 'Loading a xnor&fp mixed model...'
-        model,bin_range = vgg16_mix3()
-        pretrained_dict = torch.load('vgg16-397923af.pth')
-        model_dict = model.state_dict()
-        pretrained_dict = pretrained_dict = {k: v for k, v in pretrained_dict.items() if (k in model_dict) and (model_dict[k].shape == pretrained_dict[k].shape)}
-        for key,value in pretrained_dict.items():
-            print key
-        model_dict.update(pretrained_dict)
-        model.load_state_dict(model_dict)
+        model,bin_range = vgg16_mix3(pretrained = False)
     else:
         print 'Loading a binary vgg16_bn model...'
-        model = model_list.vgg(pretrained = False)
+        model = resnet18(pretrained = False)
     model = torch.nn.DataParallel(model)
     model.cuda()
     
@@ -183,13 +176,12 @@ def main():
     criterion = yoloLoss(7,2,5,0.5)
     optimizer = torch.optim.Adam(model.parameters(), args.lr,
                                 weight_decay = args.l)
-
     '''weight initialization'''
     if not args.pretrained:
         for m in model.modules():
             if isinstance(m, nn.Conv2d) or isinstance(m, nn.Linear):
                 c = float(m.weight.data[0].nelement())
-                m.weight.data = m.weight.data.normal_(0, 0.00618)
+                m.weight.data = m.weight.data.normal_(0, 2.0/c)
             elif isinstance(m, nn.BatchNorm2d):
                 m.weight.data = m.weight.data.zero_().add(1.0)
                 m.bias.data = m.bias.data.zero_()
@@ -212,16 +204,18 @@ def main():
                 print("=> no checkpoint found at '{}'".format(args.resume))
     else:
         if args.resume:
+            if args.mixnet:
+                model.load_state_dict(torch.load('./experiment/vgg16mix/checkpoint.pth'))
+            else:
                 model.load_state_dict(torch.load('./experiment/vgg16fp/checkpoint.pth'))
 
     
     print model
     '''Define binarization operator.'''
-   
-    if not args.pretrained:
-        global bin_op
-        bin_range = [1,11]
-        bin_op = util.BinOp(model,bin_range)
+    
+    global bin_op
+    bin_range = [1,1999999999]
+    bin_op = util.BinOp(model,bin_range)
     
     for epoch in range(args.start_epoch, args.epochs):
         

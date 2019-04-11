@@ -27,7 +27,7 @@ class BinOp():
                     tmp = m.weight.data.clone()
                     self.saved_params.append(tmp)
                     self.target_modules.append(m.weight)
-                    #print "hey, i binarized ",index," th conv ", m
+                    print "hey, i binarized ",index," th conv ", m
 
     def binarization(self):
         self.meancenterConvParams()

@@ -54,7 +54,7 @@ def decoder(pred):
     contain1 = pred[:,:,4].unsqueeze(2)
     contain2 = pred[:,:,9].unsqueeze(2)
     contain = torch.cat((contain1,contain2),2)
-    mask1 = contain > 0.01 #大于阈值
+    mask1 = contain > 0.1 #大于阈值
     mask2 = (contain==contain.max()) #we always select the best contain_prob what ever it>0.9
     mask = (mask1+mask2).gt(0)
     # min_score,min_index = torch.min(contain,2) #每个cell只选最大概率的那个预测框
@@ -74,7 +74,7 @@ def decoder(pred):
                     box_xy[2:] = box[:2] + 0.5*box[2:]
                     max_prob,cls_index = torch.max(pred[i,j,10:],0)
                     cls_index = cls_index.unsqueeze(0)
-                    if float((contain_prob*max_prob)[0]) > 0.01:
+                    if float((contain_prob*max_prob)[0]) > 0.1:
                         boxes.append(box_xy.view(1,4))
                         cls_indexs.append(cls_index)
                         probs.append(contain_prob*max_prob)
@@ -135,7 +135,7 @@ def predict_gpu(model,image_name,root_path=''):
     result = []
     image = cv2.imread(root_path+image_name)
     h,w,_ = image.shape
-    img = cv2.resize(image,(448,448))
+    img = cv2.resize(image,(224,224))
     img = cv2.cvtColor(img,cv2.COLOR_BGR2RGB)
     mean = (123,117,104)#RGB
     img = img - np.array(mean,dtype=np.float32)
